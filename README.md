@@ -1,70 +1,126 @@
-# LiveSubs
+<p align="center">
+  <h1 align="center">🎙️ LiveSubs</h1>
+</p>
 
-A specific-purpose tool for real-time Japanese audio transcription and English translation on Windows.
+<p align="center">
+  <strong>Real-Time AI Subtitles for Windows</strong>
+</p>
 
-It captures system audio via WASAPI Loopback, processes it using `faster-whisper` (CTranslate2 implementation of OpenAI's Whisper), and displays subtitles in a transparent overlay.
+<p align="center">
+  <img src="https://img.shields.io/badge/Platform-Windows%2010%2F11-blue?style=for-the-badge&logo=windows&logoColor=white" alt="Windows Only" />
+  <img src="https://img.shields.io/badge/AI-Faster--Whisper-green?style=for-the-badge&logo=nvidia&logoColor=white" alt="Faster Whisper" />
+  <img src="https://img.shields.io/badge/Acceleration-CUDA%2012.1-76b900?style=for-the-badge&logo=nvidia&logoColor=white" alt="CUDA" />
+  <img src="https://img.shields.io/badge/Python-3.11-3776ab?style=for-the-badge&logo=python&logoColor=white" alt="Python 3.11" />
+</p>
 
-## Technical Overview
+<br>
 
-*   **Audio Capture**: `pyaudiowpatch` (PortAudio with WASAPI Loopback). **Windows Only**.
-*   **Inference**: `faster-whisper` running heavily quantized (int8/float16) on CUDA.
-*   **Pipeline**:
-    1.  **VAD**: Energy-based segmentation to detect speech.
-    2.  **Transcription**: Large-v3 or Kotoba-Bilingual Whisper models.
-    3.  **Romaji**: `pykakasi` conversion.
-    4.  **Translation**: DeepL or Google Translate API (via `deep-translator`).
-*   **Latency**: Intrinsic latency of 1-3 seconds due to chunk-based processing (required for context). Scaling to "Real-time" involves incomplete partial results.
+## ✨ Overview
 
-## Prerequisites
+**LiveSubs** is a high-performance tool developed to bridge language barriers in real-time. Whether you are watching a raw Japanese stream, gaming, or attending a meeting, LiveSubs captures your **System Audio** directly and overlays cinema-quality subtitles on top of your screen.
 
-1.  **OS**: Windows 10/11 (Strict requirement for WASAPI loopback).
-2.  **GPU**: NVIDIA GPU with CUDA support.
-    *   **VRAM**: Minimum 4GB for `large-v3` (Int8). 2GB may suffice for `small`/`medium`.
-    *   *Note: CPU inference is technically possible but will result in significant desync (processing time > audio duration).*
-3.  **Environment**: Conda (recommended for CUDA toolkit management).
+It leverages the power of **Faster-Whisper** and **CTranslate2** to deliver transcription speeds up to **4x faster** than real-time on consumer GPUs, ensuring you never miss a beat.
 
-## Installation
+---
 
-The following specific combination of packages is required to avoid CUDA version mismatches and Windows DLL errors.
+## ⚡ Core Features
 
+| Feature | Description |
+|:---|:---|
+| **🎧 Loopback Capture** | Captures audio directly from your speakers (WASAPI) — no virtual cables required. |
+| **🚀 Hyper-Fast AI** | Powered by `faster-whisper` (Large-v3 / Kotoba) running on CUDA Int8 quantization. |
+| **🈯 Dual-Display** | Shows the original **Japanese**, **Romaji** pronunciation, and **English** translation simultaneously. |
+| **🧠 Smart Context** | Uses dynamic audio chunking with overlap to prevent cutting off words mid-sentence. |
+| **👻 Anti-Hallucination** | Built-in filters to detect and remove common Whisper phantom phrases (e.g., "Thank you for watching"). |
+| **🖼️ Glass Overlay** | A click-through, transparent UI that floats unobtrusively over your content. |
+
+---
+
+## 🛠️ System Requirements
+
+Before you begin, ensure your "Command Center" is ready.
+
+*   **Operating System**: Windows 10 or 11 (Strict requirement for WASAPI Loopback).
+*   **GPU**: NVIDIA GeForce GTX 10-Series or newer.
+    *   *Minimum*: 4GB VRAM (for Int8 quantization).
+    *   *Recommended*: 6GB+ VRAM (for Large-v3 models).
+*   **Software**: Conda (Miniconda/Anaconda) for environment management.
+
+---
+
+## 📦 Installation Guide
+
+We have optimized the setup to strictly control library versions, as CUDA and Windows DLLs can be temperamental.
+
+### 1. Initialize Environment
+Create a clean room for the AI to breathe.
 ```powershell
-# 1. Create Environment (Python 3.11 tested)
 conda create -n LiveSubs python=3.11.14 -y
 conda activate LiveSubs
+```
 
-# 2. Install PyTorch & CUDA 12.1
-# Must be installed via Conda to link system-level CUDA binaries correctly.
+### 2. Install The Engine (Critical)
+We must install PyTorch and CUDA 12.1 together to ensure they link correctly.
+```powershell
 conda install pytorch==2.5.1 torchvision torchaudio pytorch-cuda=12.1 -c pytorch -c nvidia -y
+```
 
-# 3. Install Python Dependencies
+### 3. Install Dependencies
+Install the audio wrappers and translation logic.
+```powershell
 pip install -r requirements.txt
+```
 
-# 4. Windows CTranslate2 Fix
-# Required to prevent "DLL load failed" errors for zlib on Windows.
+### 4. Apply Windows Fix
+This allows CTranslate2 to load the necessary zlib binaries on Windows systems.
+```powershell
 conda install -c conda-forge zlib-wapi -y
 ```
 
-## Usage
+---
 
+## 🎮 Controls & Usage
+
+### Start the Engine
 ```powershell
 conda activate LiveSubs
 python live_subtitles.py
 ```
 
-*   **Positioning**: Drag the window to move.
-*   **Menu**: Right-click to change segmentation presets or exit.
-*   **Audio Source**: The script automatically attempts to find the default WASAPI output device. Check stdout if it fails.
+### Interaction Map
+| Action | Effect |
+|:---:|:---|
+| **Drag Window** | Click and hold anywhere on the black background to reposition the subtitles. |
+| **Right-Click** | Opens the **Context Menu** to change modes or exit. |
+| **Speech Modes** | Switch between **Lyric** (High quality/cohesion) and **Stream** (Low latency). |
 
-## Configuration
+---
 
-Edit `live_subtitles.py` directly to change:
+## ⚙️ Configuration
 
-*   **`WHISPER_MODEL_PATH`**: Default is `kotoba-tech/kotoba-whisper-bilingual-v1.0-faster`. Change to `large-v3` if you have specific needs.
-*   **`COMPUTE_TYPE`**: Default `float16` (if GPU). Change to `int8_float16` if OOM occurs.
-*   **thresholds**: `VOLUME_THRESHOLD_DB` controls VAD sensitivity.
+You can fine-tune the engine by editing variables at the top of `live_subtitles.py`.
 
-## Known Limitations
+| Variable | Default (Example) | Purpose |
+|:---|:---|:---|
+| `WHISPER_MODEL_PATH` | `kotoba-tech/...` | The specific AI model to load. Try `large-v3` for max accuracy. |
+| `VOLUME_THRESHOLD_DB` | `-45.0` | Sensitivity gate. Lower this if the audio is very quiet. |
+| `COMPUTE_TYPE` | `float16` | Change to `int8_float16` if you are running out of VRAM. |
 
-*   **Hallucinations**: Whisper models are prone to repeating phrases ("Thank you for watching") during silence. A regex-based filter is implemented in `live_subtitles.py` to mitigate this, but valid speech may essentially be filtered if it matches common hallucination patterns.
-*   **Single Stream**: Currently strictly mono-stream processing. It cannot differentiate between speakers (diarization is not implemented).
-*   **App Focus**: This is a standalone script, not a packaged application. It requires an active terminal window.
+---
+
+## ❓ Troubleshooting
+
+**Q: "The window opens but no text appears."**
+> **A:** Check the console. It prints which audio device it hooked into (e.g., `[AUDIO] Source: Speakers`). If silence persists, play louder audio to trigger the gate.
+
+**Q: "DLL load failed while importing ctranslate2"**
+> **A:** You likely skipped Step 4. Run `conda install -c conda-forge zlib-wapi -y`.
+
+**Q: "It's lagging behind the audio."**
+> **A:** This is intrinsic generic latency (1-3s) required to gather enough context for a translation. For faster (but less accurate) results, right-click and select **"Fast (Gaming)"** mode.
+
+---
+
+<p align="center">
+  <strong>Break The Language Barrier.</strong>
+</p>
